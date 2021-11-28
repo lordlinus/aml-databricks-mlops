@@ -1,4 +1,4 @@
-name: Train-Model-and-Deploy
+name: Train-Model-DBX-and-Deploy-to-AKS
 
 # Controls when the workflow will run
 on:
@@ -80,11 +80,16 @@ jobs:
       #       run_id:  ${{ steps.aml_run.outputs.run_id }}
       #       experiment_name: ${{ steps.aml_run.outputs.experiment_name }}
 
+      # Download model from the Model Registry into the Pipeline VM: Add task of type 'Azure CLI'
+      # - name: Download model
+      #   id: aml_download
+      #   uses: Azure
+
       # Deploy model in Azure Machine Learning to ACI
       - name: Deploy model
         id: aml_deploy
         uses: Azure/aml-deploy@v1
         with:
           azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
-          model_name: "lightgbm-model"
+          model_name: "ss-lightgbm-model"
           model_version: "latest"
