@@ -79,6 +79,7 @@ jobs:
       #       azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
       #       run_id:  ${{ steps.aml_run.outputs.run_id }}
       #       experiment_name: ${{ steps.aml_run.outputs.experiment_name }}
+      
 
       # Download model from the Model Registry into the Pipeline VM: Add task of type 'Azure CLI'
       # - name: Download model
