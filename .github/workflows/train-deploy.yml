@@ -1,4 +1,4 @@
-name: Train-Model
+name: Train-Model-and-Deploy
 
 # Controls when the workflow will run
 on:
@@ -93,5 +93,5 @@ jobs:
       uses: Azure/aml-deploy@v1
       with:
           azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
-          model_name:  "lightgbm-example"
+          model_name:  "lightgbm-model"
           model_version: "latest"
