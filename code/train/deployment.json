@@ -1,0 +1,27 @@
+{
+    "settings": {
+        "new_cluster": {
+            "spark_version": "9.1.x-scala2.12",
+            "spark_conf": {
+                "spark.databricks.delta.preview.enabled": "true"
+            },
+            "azure_attributes": {
+                "availability": "ON_DEMAND_AZURE",
+                "first_on_demand": 1,
+                "spot_bid_max_price": -1
+            },
+            "node_type_id": "Standard_DS3_v2",
+            "spark_env_vars": {
+                "PYSPARK_PYTHON": "/databricks/python3/bin/python3"
+            },
+            "enable_elastic_disk": true,
+            "num_workers": 1
+        },
+        "notebook_task": {
+            "notebook_path": "/Users/ssattiraju@microsoft.com/azureml-lightgbm"
+        },
+        "email_notifications": {},
+        "name": "sample_task_1",
+        "max_concurrent_runs": 1
+    }
+}

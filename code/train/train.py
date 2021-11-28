@@ -15,6 +15,29 @@ from azureml.core import Dataset, Run
 run = Run.get_context()
 
 
+def databricks_step():
+    db_compute_name=os.getenv("DATABRICKS_COMPUTE_NAME", "<my-databricks-compute-name>") # Databricks compute name
+    db_resource_group=os.getenv("DATABRICKS_RESOURCE_GROUP", "<my-db-resource-group>") # Databricks resource group
+    db_workspace_name=os.getenv("DATABRICKS_WORKSPACE_NAME", "<my-db-workspace-name>") # Databricks workspace name
+    db_access_token=os.getenv("DATABRICKS_ACCESS_TOKEN", "<my-access-token>") # Databricks access token
+    
+    try:
+        databricks_compute = DatabricksCompute(workspace=ws, name=db_compute_name)
+        print('Compute target {} already exists'.format(db_compute_name))
+    except ComputeTargetException:
+        print('Compute not found, will use below parameters to attach new one')
+        print('db_compute_name {}'.format(db_compute_name))
+        print('db_resource_group {}'.format(db_resource_group))
+        print('db_workspace_name {}'.format(db_workspace_name))
+        print('db_access_token {}'.format(db_access_token))
+    
+        config = DatabricksCompute.attach_configuration(
+            resource_group = db_resource_group,
+            workspace_name = db_workspace_name,
+            access_token= db_access_token)
+        databricks_compute=ComputeTarget.attach(ws, db_compute_name, config)
+        databricks_compute.wait_for_completion(True)
+
 def log_confusion_matrix_image(cm, labels, normalize=False, log_name='confusion_matrix', title='Confusion matrix', cmap=plt.cm.Blues):
     '''
     This function prints and plots the confusion matrix.
