@@ -1,5 +1,5 @@
 from setuptools import find_packages, setup
-from aml_dbx_cicd import __version__
+from aml_databricks_mlops import __version__
 
 setup(
     name="aml-databricks-mlops",
