@@ -16,11 +16,16 @@ from azureml.core.model import Model
 def init():
     global model
 
-    # The AZUREML_MODEL_DIR environment variable indicates
-    # a directory containing the model file you registered.
-    model_filename = "model.pkl"
-    model_path = os.path.join(os.environ["AZUREML_MODEL_DIR"], model_filename)
-    model = joblib.load(model_path)
+    try:
+        # The AZUREML_MODEL_DIR environment variable indicates
+        # a directory containing the model file you registered.
+        model_filename = "model.pkl"
+        model_path = os.path.join(os.environ["AZUREML_MODEL_DIR"], model_filename)
+        print(model_path)
+        model = joblib.load(model_path)
+    except Exception as e:
+        print("Failed to load model: " + str(e))
+        pass
 
 
 # The run() method is called each time a request is made to the scoring API.
