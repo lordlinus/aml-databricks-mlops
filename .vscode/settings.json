@@ -1,3 +1,4 @@
 {
-    "python.formatting.provider": "black"
+    "python.formatting.provider": "black",
+    "azureML.defaultWorkspaceId": "/subscriptions/50fb2758-5add-47ee-b8f2-9c9ae596fed5/resourceGroups/rgrp-de-realtime/providers/Microsoft.MachineLearningServices/workspaces/amlworkspacepmuinfwoajrtd"
 }

@@ -341,3 +341,6 @@ healthchecksdb
 
 # Eggs
 .eggs/
+
+# vscode
+.vscode/
