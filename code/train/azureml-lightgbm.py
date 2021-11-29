@@ -13,6 +13,7 @@ import mlflow
 import mlflow.azureml
 import numpy as np
 import pandas as pd
+import sklearn
 from azureml.core import Model, Workspace
 from azureml.core.authentication import InteractiveLoginAuthentication
 from azureml.core.compute import AksCompute, ComputeTarget
@@ -42,10 +43,8 @@ resource_group = "demo-rg-01"
 workspace_name = "aml-workspace-01"
 
 workspace_region = "southeastasia"  # your region (if workspace need to be created)
-experiment_name = (
-    "lightgbm-example"  # Cab be any name and will be displayed in the Azure ML UI
-)
-model_name = "lightgbm-model"
+experiment_name = "ss-lightgbm-exp"
+model_name = "ss-lightgbm-model"
 
 workspace = Workspace.get(
     name=workspace_name,
@@ -152,6 +151,19 @@ runs_df = runs_df.loc[runs_df["status"] == "FINISHED"]
 runs_df = runs_df.sort_values(by="end_time", ascending=False)
 print(runs_df.head())
 run_id = runs_df.at[0, "run_id"]
+
+joblib.dump(model, "model.pkl")
+
+azureml_model = Model.register(
+    workspace=workspace,
+    model_name=model_name,  # Name of the registered model in your workspace.
+    model_path="./model.pkl",  # Local file to upload and register as a model.
+    model_framework=Model.Framework.SCIKITLEARN,  # Framework used to create the model.
+    model_framework_version=sklearn.__version__,  # Version of scikit-learn used to create the model.
+    resource_configuration=ResourceConfiguration(cpu=1, memory_in_gb=0.5),
+    description="Sample ML Model",
+    tags={"area": "azureml", "type": "databricks notebook"},
+)
 
 # Return the run_id of the model
 dbutils.notebook.exit(run_id)

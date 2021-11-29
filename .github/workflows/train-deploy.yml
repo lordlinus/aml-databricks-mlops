@@ -53,6 +53,9 @@ jobs:
         id: mljobid
         run: |
           databricks jobs run-now --job-id 1629
+      - name: print-run_id
+        run: echo "${{steps.mljobid.outputs.run_id}}"
+  
   deploy:
     environment:
       name: production
@@ -79,7 +82,6 @@ jobs:
       #       azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
       #       run_id:  ${{ steps.aml_run.outputs.run_id }}
       #       experiment_name: ${{ steps.aml_run.outputs.experiment_name }}
-      
 
       # Download model from the Model Registry into the Pipeline VM: Add task of type 'Azure CLI'
       # - name: Download model
@@ -94,3 +96,4 @@ jobs:
           azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
           model_name: "ss-lightgbm-model"
           model_version: "latest"
+          parameters_file: "deploy.json"
