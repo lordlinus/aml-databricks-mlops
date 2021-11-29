@@ -17,7 +17,7 @@ def init():
     # The AZUREML_MODEL_DIR environment variable indicates
     # a directory containing the model file you registered.
     model_filename = "model.pkl"
-    model_path = os.path.join(os.environ["AZUREML_MODEL_DIR"], "model", model_filename)
+    model_path = os.path.join(os.environ["AZUREML_MODEL_DIR"], model_filename)
     model = joblib.load(model_path)
 
 
