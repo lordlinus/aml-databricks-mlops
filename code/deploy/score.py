@@ -6,6 +6,8 @@ from inference_schema.parameter_types.numpy_parameter_type import \
     NumpyParameterType
 from inference_schema.schema_decorators import input_schema, output_schema
 
+from azureml.core.model import Model
+
 
 # The init() method is called once, when the web service starts up.
 #
@@ -16,8 +18,10 @@ def init():
 
     # The AZUREML_MODEL_DIR environment variable indicates
     # a directory containing the model file you registered.
-    model_filename = "model.pkl"
-    model_path = os.path.join(os.environ["AZUREML_MODEL_DIR"], model_filename)
+    # model_filename = "model.pkl"
+    # model_path = os.path.join(os.environ["AZUREML_MODEL_DIR"], model_filename)
+
+    model_path = Model.get_model_path(model_name='ss-lightgbm-model')
     model = joblib.load(model_path)
 
 
