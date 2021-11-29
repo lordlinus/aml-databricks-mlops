@@ -20,7 +20,7 @@ def init():
         # a directory containing the model file you registered.
         model_filename = "model.pkl"
         model_path = os.path.join(
-            os.getenv("AZUREML_MODEL_DIR"), "model", model_filename
+            os.getenv("AZUREML_MODEL_DIR"), model_filename
         )
         print(model_path)
         model = joblib.load(model_path)
@@ -36,6 +36,7 @@ def init():
 # run() method parses and validates the incoming payload against
 # the example input you provide here. This will also generate a Swagger
 # API document for your web service.
+# sample json input: {"data": [[0.1, 1.2, 2.3, 3.4, 4.5]]}
 @input_schema("data", NumpyParameterType(np.array([[0.1, 1.2, 2.3, 3.4, 4.5]])))
 @output_schema(NumpyParameterType(np.array([0.1, 1.2])))
 def run(data):
