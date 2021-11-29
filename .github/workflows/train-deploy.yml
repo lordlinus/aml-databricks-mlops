@@ -52,11 +52,13 @@ jobs:
       - name: dbx-list-jobs
         run: |
           databricks jobs list
+
       - name: dbx-job-run
         id: mljobid
         run: |
           dbx_exec=$(databricks jobs run-now --job-id 1629)
-          echo "run_id=$dbx_exec" >> $GITHUB_ENV
+          echo "run_id=$dbx_exec"
+      
       - name: azure login
         uses: azure/login@v1
         with:
