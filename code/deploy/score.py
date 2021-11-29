@@ -2,8 +2,7 @@ import os
 
 import joblib
 import numpy as np
-from inference_schema.parameter_types.numpy_parameter_type import \
-    NumpyParameterType
+from inference_schema.parameter_types.numpy_parameter_type import NumpyParameterType
 from inference_schema.schema_decorators import input_schema, output_schema
 
 from azureml.core.model import Model
@@ -20,7 +19,9 @@ def init():
         # The AZUREML_MODEL_DIR environment variable indicates
         # a directory containing the model file you registered.
         model_filename = "model.pkl"
-        model_path = os.path.join(os.environ["AZUREML_MODEL_DIR"], model_filename)
+        model_path = os.path.join(
+            os.getenv("AZUREML_MODEL_DIR"), "model", model_filename
+        )
         print(model_path)
         model = joblib.load(model_path)
     except Exception as e:
