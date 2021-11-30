@@ -1,8 +1,15 @@
-# Databricks notebook source
-# MAGIC %pip install lightgbm
-# MAGIC %pip install azureml-sdk[databricks]
-# MAGIC %pip install azureml-mlflow
+import subprocess
+import sys
 
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+
+install("lightgbm")
+install("azureml-sdk[databricks]")
+install("azureml-mlflow")
+install("joblib")
 
 import time
 from random import randint
