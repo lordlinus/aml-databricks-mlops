@@ -15,7 +15,7 @@
                 }
             },
             "new_cluster": {
-                "cluster_name": "job-cluster-01",
+                "cluster_name": "",
                 "spark_version": "9.1.x-scala2.12",
                 "spark_conf": {
                     "spark.databricks.delta.preview.enabled": "true"

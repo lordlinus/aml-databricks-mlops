@@ -68,7 +68,7 @@ jobs:
         id: mljobid
         run: |
           JOB_ID=$(databricks jobs list --version 2.1 --output JSON | jq -c ".jobs[] | select(.settings.name == \"databricks-train-model-01\") | .job_id")
-          databricks jobs run-now --job-id JOB_ID
+          databricks jobs run-now --job-id $JOB_ID
       - name: azure login
         uses: azure/login@v1
         with:
