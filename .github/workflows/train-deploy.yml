@@ -41,7 +41,7 @@ jobs:
           python -m pip install --upgrade pip
       - name: Install OS components
         shell: sh
-        run: apt-get install -y jq
+        run: sudo apt-get install -y jq
 
       - name: Install dependencies and project in dev mode
         run: |
