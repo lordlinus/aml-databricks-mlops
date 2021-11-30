@@ -50,23 +50,24 @@ jobs:
       - name: Upload local notebook
         run: |
           databricks workspace import_dir -o -e code/train /Shared/model_01
-      - name: Setup databricks-cli
-        run: |
-          databricks jobs configure --version=2.1
       - name: Delete existing job with the same name
         run: |
+          databricks jobs configure --version=2.1
           JOB_ID=$(databricks jobs list --output JSON | jq -c ".jobs[] | select(.settings.name == \"databricks-train-model-01\") | .job_id")
           databricks jobs delete --job-id $JOB_ID
         continue-on-error: true
       - name: create-databricks-job
         run: |
+          databricks jobs configure --version=2.1
           databricks jobs create --json-file code/train/deployment.json
       - name: dbx-list-jobs
         run: |
+          databricks jobs configure --version=2.1
           databricks jobs list
       - name: dbx-job-run
         id: mljobid
         run: |
+          databricks jobs configure --version=2.1
           JOB_ID=$(databricks jobs list --output JSON | jq -c ".jobs[] | select(.settings.name == \"databricks-train-model-01\") | .job_id")
           databricks jobs run-now --job-id JOB_ID
       - name: azure login
