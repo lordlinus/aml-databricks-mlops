@@ -7,7 +7,7 @@ from inference_schema.schema_decorators import input_schema, output_schema
 
 from azureml.core.model import Model
 
-# This is from develop branch
+# This is from develop branch - update 1
 
 # The init() method is called once, when the web service starts up.
 #
