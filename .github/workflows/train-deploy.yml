@@ -1,6 +1,7 @@
 name: Train-Model-DBX-and-Deploy-to-AKS
 
 # Controls when the workflow will run
+# demo
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
@@ -77,6 +78,9 @@ jobs:
       #   run: bash setup.sh
       #   working-directory: code
       #   continue-on-error: true
+    # outputs:
+    #   mljobid: ${{steps.mljobid}}
+      
 
   deploy:
     environment:
