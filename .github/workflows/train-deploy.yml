@@ -32,36 +32,47 @@ jobs:
       - name: Check Out Repository
         id: checkout_repository
         uses: actions/checkout@v2
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.7.5
-
       - name: Install pip
         run: |
           python -m pip install --upgrade pip
+      - name: Install OS components
+        shell: sh
+        run: apt-get install -y jq
 
       - name: Install dependencies and project in dev mode
         run: |
           pip install -r unit-requirements.txt
           pip install -e .
-
+      - name: Upload local notebook
+        run: |
+          bash databricks workspace import_dir -o -e code/train /Shared/model_01
+      - name: Setup databricks-cli
+        run: |
+          databricks jobs configure --version=2.1
+      - name: Delete existing job with the same name
+        run: |
+          JOB_ID=$(databricks jobs list --output JSON | jq -c ".jobs[] | select(.settings.name == \"databricks-train-model-01\") | .job_id")
+          databricks jobs delete --job-id $JOB_ID
+        continue-on-error: true
+      - name: create-databricks-job
+        run: |
+          databricks jobs create --json-file code/train/deployment.json
       - name: dbx-list-jobs
         run: |
           databricks jobs list
-
       - name: dbx-job-run
         id: mljobid
         run: |
-          dbx_exec=$(databricks jobs run-now --job-id 1629)
-          echo "run_id=$dbx_exec"
-
+          JOB_ID=$(databricks jobs list --output JSON | jq -c ".jobs[] | select(.settings.name == \"databricks-train-model-01\") | .job_id")
+          databricks jobs run-now --job-id JOB_ID
       - name: azure login
         uses: azure/login@v1
         with:
           creds: ${{secrets.AZURE_CREDENTIALS}}
-
       - name: setup
         run: bash setup.sh
         working-directory: code

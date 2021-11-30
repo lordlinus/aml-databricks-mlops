@@ -1,153 +1,169 @@
-import os
-import argparse
-import itertools
+# Databricks notebook source
+# MAGIC %pip install lightgbm
+# MAGIC %pip install azureml-sdk[databricks]
+# MAGIC %pip install azureml-mlflow
+
+
+import time
+from random import randint
+
+import joblib
+import lightgbm as lgb
+import mlflow
+import mlflow.azureml
 import numpy as np
 import pandas as pd
-import joblib
-import matplotlib.pyplot as plt
-
-from sklearn import datasets
-from sklearn.svm import SVC
-from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+import sklearn
+from azureml.core import Model, Workspace
+from azureml.core.authentication import InteractiveLoginAuthentication
+from azureml.core.compute import AksCompute, ComputeTarget
+from azureml.core.environment import CondaDependencies, Environment
+from azureml.core.model import InferenceConfig, Model
+from azureml.core.resource_configuration import ResourceConfiguration
+from azureml.core.webservice import AksWebservice, Webservice
+from azureml.core.webservice.aks import AksServiceDeploymentConfiguration
+from sklearn.metrics import accuracy_score, log_loss
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 
-from azureml.core import Dataset, Run
-run = Run.get_context()
+from azureml.core.authentication import ServicePrincipalAuthentication
 
+tenantId = dbutils.secrets.get(scope="key-vault-secrets", key="tenantId")
+clientId = dbutils.secrets.get(scope="key-vault-secrets", key="clientId")
+clientSecret = dbutils.secrets.get(scope="key-vault-secrets", key="clientSecret")
 
-def databricks_step():
-    db_compute_name=os.getenv("DATABRICKS_COMPUTE_NAME", "<my-databricks-compute-name>") # Databricks compute name
-    db_resource_group=os.getenv("DATABRICKS_RESOURCE_GROUP", "<my-db-resource-group>") # Databricks resource group
-    db_workspace_name=os.getenv("DATABRICKS_WORKSPACE_NAME", "<my-db-workspace-name>") # Databricks workspace name
-    db_access_token=os.getenv("DATABRICKS_ACCESS_TOKEN", "<my-access-token>") # Databricks access token
-    
-    try:
-        databricks_compute = DatabricksCompute(workspace=ws, name=db_compute_name)
-        print('Compute target {} already exists'.format(db_compute_name))
-    except ComputeTargetException:
-        print('Compute not found, will use below parameters to attach new one')
-        print('db_compute_name {}'.format(db_compute_name))
-        print('db_resource_group {}'.format(db_resource_group))
-        print('db_workspace_name {}'.format(db_workspace_name))
-        print('db_access_token {}'.format(db_access_token))
-    
-        config = DatabricksCompute.attach_configuration(
-            resource_group = db_resource_group,
-            workspace_name = db_workspace_name,
-            access_token= db_access_token)
-        databricks_compute=ComputeTarget.attach(ws, db_compute_name, config)
-        databricks_compute.wait_for_completion(True)
+sp = ServicePrincipalAuthentication(
+    tenant_id=tenantId,
+    service_principal_id=clientId,
+    service_principal_password=clientSecret,
+)
 
-def log_confusion_matrix_image(cm, labels, normalize=False, log_name='confusion_matrix', title='Confusion matrix', cmap=plt.cm.Blues):
-    '''
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    '''
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis = 1)[:, np.newaxis]
-        print('Normalized confusion matrix')
-    else:
-        print('Confusion matrix, without normalization')
-    print(cm)
-    
-    plt.figure()
-    plt.imshow(cm, interpolation = 'nearest', cmap = cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(labels))
-    plt.xticks(tick_marks, labels, rotation = 45)
-    plt.yticks(tick_marks, labels)
-    
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment = "center", color = 'white' if cm[i, j] > thresh else 'black')
-    
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.tight_layout()
-    run.log_image(log_name, plot=plt)
-    plt.savefig(os.path.join('outputs', '{0}.png'.format(log_name)))
+subscription_id = "7c1d967f-37f1-4047-bef7-05af9aa80fe2"
+resource_group = "demo-rg-01"
+workspace_name = "aml-workspace-01"
+
+workspace_region = "southeastasia"  # your region (if workspace need to be created)
+experiment_name = "ss-lightgbm-exp"
+model_name = "ss-lightgbm-model"
+
+workspace = Workspace.get(
+    name=workspace_name,
+    location=workspace_region,
+    resource_group=resource_group,
+    subscription_id=subscription_id,
+    auth=sp,
+)
+
+workspace.get_details()
+mlflow.set_tracking_uri(workspace.get_mlflow_tracking_uri())
+mlflow.set_experiment(experiment_name)
 
 
-def log_confusion_matrix(cm, labels):
-    # log confusion matrix as object
-    cm_json =   {
-       'schema_type': 'confusion_matrix',
-       'schema_version': 'v1',
-       'data': {
-           'class_labels': labels,
-           'matrix': cm.tolist()
-       }
-    }
-    run.log_confusion_matrix('confusion_matrix', cm_json)
-    
-    # log confusion matrix as image
-    log_confusion_matrix_image(cm, labels, normalize=False, log_name='confusion_matrix_unnormalized', title='Confusion matrix')
-    
-    # log normalized confusion matrix as image
-    log_confusion_matrix_image(cm, labels, normalize=True, log_name='confusion_matrix_normalized', title='Normalized confusion matrix')
+csv_file_path = "/dbfs/FileStore/data/Breast_cancer_data_0.csv"
+dbfs_csv_file_path = "/FileStore/data/Breast_cancer_data_0.csv"
 
 
-def main(args):
-    # create the outputs folder
-    os.makedirs('outputs', exist_ok=True)
-    
-    # Log arguments
-    run.log('Kernel type', np.str(args.kernel))
-    run.log('Penalty', np.float(args.penalty))
-
-    # Load iris dataset
-    X, y = datasets.load_iris(return_X_y=True)
-    
-    #dividing X,y into train and test data
-    x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=223)
-    data = {'train': {'X': x_train, 'y': y_train},
-            'test': {'X': x_test, 'y': y_test}}
-    
-    # train a SVM classifier
-    svm_model = SVC(kernel=args.kernel, C=args.penalty, gamma='scale').fit(data['train']['X'], data['train']['y'])
-    svm_predictions = svm_model.predict(data['test']['X'])
-
-    # accuracy for X_test
-    accuracy = svm_model.score(data['test']['X'], data['test']['y'])
-    print('Accuracy of SVM classifier on test set: {:.2f}'.format(accuracy))
-    run.log('Accuracy', np.float(accuracy))
-    
-    # precision for X_test
-    precision = precision_score(svm_predictions, data["test"]["y"], average='weighted')
-    print('Precision of SVM classifier on test set: {:.2f}'.format(precision))
-    run.log('precision', precision)
-    
-    # recall for X_test
-    recall = recall_score(svm_predictions, data["test"]["y"], average='weighted')
-    print('Recall of SVM classifier on test set: {:.2f}'.format(recall))
-    run.log('recall', recall)
-    
-    # f1-score for X_test
-    f1 = f1_score(svm_predictions, data["test"]["y"], average='weighted')
-    print('F1-Score of SVM classifier on test set: {:.2f}'.format(f1))
-    run.log('f1-score', f1)
-    
-    # create a confusion matrix
-    labels = ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
-    labels_numbers = [0, 1, 2]
-    cm = confusion_matrix(y_test, svm_predictions, labels_numbers)
-    log_confusion_matrix(cm, labels)
-    
-    # files saved in the "outputs" folder are automatically uploaded into run history
-    model_file_name = "model.pkl"
-    joblib.dump(svm_model, os.path.join('outputs', model_file_name))
+df = pd.read_csv(csv_file_path)
+df.head()
+df.info()
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--kernel', type=str, default='rbf', help='Kernel type to be used in the algorithm')
-    parser.add_argument('--penalty', type=float, default=1.0, help='Penalty parameter of the error term')
-    args = parser.parse_args()
-    return args
+# define functions
+def preprocess_data(df):
+    X = df[
+        [
+            "mean_radius",
+            "mean_texture",
+            "mean_perimeter",
+            "mean_area",
+            "mean_smoothness",
+        ]
+    ]
+    y = df["diagnosis"]
+
+    enc = LabelEncoder()
+    y = enc.fit_transform(y)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=16
+    )
+
+    return X_train, X_test, y_train, y_test, enc
 
 
-if __name__ == '__main__':
-    args = parse_args()
-    main(args=args)
+def train_model(params, num_boost_round, X_train, X_test, y_train, y_test):
+    t1 = time.time()
+    train_data = lgb.Dataset(X_train, label=y_train)
+    test_data = lgb.Dataset(X_test, label=y_test)
+    model = lgb.train(
+        params,
+        train_data,
+        num_boost_round=num_boost_round,
+        valid_sets=[test_data],
+        valid_names=["test"],
+    )
+    t2 = time.time()
+
+    return model, t2 - t1
+
+
+def evaluate_model(model, X_test, y_test):
+    y_proba = model.predict(X_test)
+    y_pred = y_proba.argmax(axis=1)
+    loss = log_loss(y_test, y_proba)
+    acc = accuracy_score(y_test, y_pred)
+
+    return loss, acc
+
+
+# preprocess data
+X_train, X_test, y_train, y_test, enc = preprocess_data(df)
+
+# set training parameters
+params = {
+    "objective": "multiclass",
+    "num_class": 2,
+    "learning_rate": 0.1,
+    "metric": "multi_logloss",
+    "colsample_bytree": 1.0,
+    "subsample": 1.0,
+    "seed": 16,
+}
+
+num_boost_round = 32
+
+with mlflow.start_run() as run:
+    # enable automatic logging
+    mlflow.lightgbm.autolog()
+
+    # train model
+    model, train_time = train_model(
+        params, num_boost_round, X_train, X_test, y_train, y_test
+    )
+    mlflow.log_metric("training_time", train_time)
+
+    # evaluate model
+    loss, acc = evaluate_model(model, X_test, y_test)
+    mlflow.log_metrics({"loss": loss, "accuracy": acc})
+
+runs_df = mlflow.search_runs()
+runs_df = runs_df.loc[runs_df["status"] == "FINISHED"]
+runs_df = runs_df.sort_values(by="end_time", ascending=False)
+print(runs_df.head())
+run_id = runs_df.at[0, "run_id"]
+
+joblib.dump(model, "model.pkl")
+
+azureml_model = Model.register(
+    workspace=workspace,
+    model_name=model_name,  # Name of the registered model in your workspace.
+    model_path="./model.pkl",  # Local file to upload and register as a model.
+    model_framework=Model.Framework.SCIKITLEARN,  # Framework used to create the model.
+    model_framework_version=sklearn.__version__,  # Version of scikit-learn used to create the model.
+    resource_configuration=ResourceConfiguration(cpu=1, memory_in_gb=0.5),
+    description="Sample ML Model",
+    tags={"area": "azureml", "type": "databricks notebook"},
+)
+
+# Return the run_id of the model
+dbutils.notebook.exit(run_id)

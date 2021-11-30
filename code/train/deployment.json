@@ -1,27 +1,47 @@
 {
-    "settings": {
-        "new_cluster": {
-            "spark_version": "9.1.x-scala2.12",
-            "spark_conf": {
-                "spark.databricks.delta.preview.enabled": "true"
+    "name": "databricks-train-model-01",
+    "email_notifications": {
+        "no_alert_for_skipped_runs": false
+    },
+    "max_concurrent_runs": 1,
+    "tasks": [
+        {
+            "task_key": "databricks-train-model-01",
+            "notebook_task": {
+                "notebook_path": "/Shared/model_01/train.py",
+                "base_parameters": {
+                    "argument1": "value 1",
+                    "argument2": "value 2"
+                }
             },
-            "azure_attributes": {
-                "availability": "ON_DEMAND_AZURE",
-                "first_on_demand": 1,
-                "spot_bid_max_price": -1
+            "new_cluster": {
+                "cluster_name": "",
+                "spark_version": "9.1.x-scala2.12",
+                "spark_conf": {
+                    "spark.databricks.delta.preview.enabled": "true"
+                },
+                "node_type_id": "Standard_DS3_v2",
+                "cluster_log_conf": {
+                    "dbfs": {
+                        "destination": "dbfs:/cluster-logs"
+                    }
+                },
+                "spark_env_vars": {
+                    "PYSPARK_PYTHON": "/databricks/python3/bin/python3"
+                },
+                "enable_elastic_disk": true,
+                "azure_attributes": {
+                    "first_on_demand": 1,
+                    "availability": "ON_DEMAND_AZURE",
+                    "spot_bid_max_price": -1
+                },
+                "autoscale": {
+                    "min_workers": 1,
+                    "max_workers": 8
+                }
             },
-            "node_type_id": "Standard_DS3_v2",
-            "spark_env_vars": {
-                "PYSPARK_PYTHON": "/databricks/python3/bin/python3"
-            },
-            "enable_elastic_disk": true,
-            "num_workers": 1
-        },
-        "notebook_task": {
-            "notebook_path": "/Users/ssattiraju@microsoft.com/azureml-lightgbm"
-        },
-        "email_notifications": {},
-        "name": "sample_task_1",
-        "max_concurrent_runs": 1
-    }
+            "timeout_seconds": 0
+        }
+    ],
+    "format": "MULTI_TASK"
 }
