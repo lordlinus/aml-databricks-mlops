@@ -40,6 +40,23 @@
                     "max_workers": 8
                 }
             },
+            "libraries": [
+                {
+                    "pypi": {
+                        "package": "lightgbm"
+                    }
+                },
+                {
+                    "pypi": {
+                        "package": "azureml-sdk[databricks]"
+                    }
+                },
+                {
+                    "pypi": {
+                        "package": "azureml-mlflow"
+                    }
+                }
+            ],
             "timeout_seconds": 0
         }
     ],
