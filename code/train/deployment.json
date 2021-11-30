@@ -8,7 +8,7 @@
         {
             "task_key": "databricks-train-model-01",
             "notebook_task": {
-                "notebook_path": "/Shared/model_01/train.py",
+                "notebook_path": "/Shared/model_01/train",
                 "base_parameters": {
                     "argument1": "value 1",
                     "argument2": "value 2"
